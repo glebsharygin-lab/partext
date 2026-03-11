@@ -1,0 +1,41 @@
+name: Test publish script
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+      - '!main'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Load input folder from config
+        id: config
+        run: echo "folder=$(cat .github/config.json | jq -r '.input_folder')" >> $GITHUB_OUTPUT
+
+      - name: Test publish script
+        run: python scripts/publish.py ${{ steps.config.outputs.folder }} test-output
+
+      - name: Verify output
+        run: |
+          if [ ! -d test-output ] || [ -z "$(find test-output -name '*.html' -type f)" ]; then
+            echo "Error: No HTML files generated"
+            exit 1
+          fi
+          echo "✓ Publish script works correctly"
